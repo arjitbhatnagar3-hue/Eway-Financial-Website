@@ -1,0 +1,36 @@
+# Local development with a real PostgreSQL database.
+#
+#   docker compose up --build        → site on http://localhost:8000
+#   docker compose exec web python manage.py seed-demo     (optional sample data)
+#
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: eway
+      POSTGRES_PASSWORD: eway
+      POSTGRES_DB: eway
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U eway -d eway"]
+      interval: 5s
+      retries: 10
+
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://eway:eway@db:5432/eway
+      ADMIN_EMAIL: admin@ewayfinancial.in
+      ADMIN_PASSWORD: ChangeMe@123
+      ADMIN_NAME: Administrator
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:

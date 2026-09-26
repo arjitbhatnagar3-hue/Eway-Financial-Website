@@ -4,6 +4,14 @@ __pycache__/
 venv/
 .env
 .DS_Store
+.pytest_cache/
+
+# local database (SQLite) — never commit real data
+*.db
+*.db-shm
+*.db-wal
+
+# legacy JSON storage (migrate with: python manage.py import-json)
 messages.json
 users.json
 sessions.json
