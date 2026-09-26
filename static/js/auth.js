@@ -58,8 +58,11 @@
         showError(detail);
         return;
       }
-      // Cookie was set by the server — go to the site.
-      window.location.href = "/";
+      // Cookie was set by the server. Honour ?next=/some/path (same-site only),
+      // otherwise go where the server suggests (staff → /hr, clients → /).
+      const next = new URLSearchParams(window.location.search).get("next");
+      const safeNext = next && next.startsWith("/") && !next.startsWith("//") ? next : null;
+      window.location.href = safeNext || data.redirect || "/";
     } catch {
       showError("Could not reach the server. Please try again.");
     } finally {

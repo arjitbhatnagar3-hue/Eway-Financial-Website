@@ -1,5 +1,14 @@
-# Render Blueprint — one-click deploy from GitHub.
-# On render.com: New + → Blueprint → pick this repo → Deploy.
+# Render Blueprint — deploy from GitHub.
+# On render.com: New + → Blueprint → pick this repo → you'll be asked for the
+# values marked `sync: false` below.
+#
+# DATABASE_URL — paste a PostgreSQL connection string. Good options:
+#   • Neon (neon.tech) or Supabase (supabase.com) — free tiers that don't expire
+#   • Render Postgres — uncomment the `databases:` block at the bottom and the
+#     `fromDatabase` lines instead. NOTE: Render's *free* Postgres is deleted
+#     30 days after creation; use at least the basic-256mb plan for real data.
+# Without DATABASE_URL the app falls back to SQLite on Render's temporary disk,
+# and ALL DATA IS LOST on every deploy/restart.
 services:
   - type: web
     name: eway-financial

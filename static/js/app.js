@@ -331,6 +331,7 @@ function renderAuthed(user) {
   if (!slot) return;
   const firstName = user.name.trim().split(/\s+/)[0];
   slot.innerHTML = `
+    ${user.is_staff ? '<a href="/hr" class="nav-link">HR Portal</a>' : ""}
     <span class="user-chip" title="${esc(user.email)}">
       <span class="user-avatar" aria-hidden="true">${esc(initials(user.name))}</span>${esc(firstName)}
     </span>
