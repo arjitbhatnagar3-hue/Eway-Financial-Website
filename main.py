@@ -27,7 +27,7 @@ from company_data import COMPANY, COMPLIANCE, DIRECTORS, FAQS, SERVICES, TESTIMO
 from eway.bootstrap import startup
 from eway.config import IS_SQLITE, STATIC_DIR
 from eway.database import get_db
-from eway.routers import auth, contact, hr
+from eway.routers import auth, content, contact, hr
 
 
 @asynccontextmanager
@@ -49,6 +49,7 @@ app = FastAPI(
 
 app.include_router(auth.router)
 app.include_router(contact.router)
+app.include_router(content.router)
 app.include_router(hr.router)
 
 
@@ -160,6 +161,84 @@ def login_page() -> FileResponse:
 @app.get("/signup", include_in_schema=False)
 def signup_page() -> FileResponse:
     return FileResponse(STATIC_DIR / "signup.html")
+
+
+# ---- About Us (overview + 4 sub-pages) -----------------------------------
+@app.get("/about", include_in_schema=False)
+def about_page() -> FileResponse:
+    return FileResponse(STATIC_DIR / "about.html")
+
+
+@app.get("/about/company-profile", include_in_schema=False)
+def about_company_profile_page() -> FileResponse:
+    return FileResponse(STATIC_DIR / "about-company-profile.html")
+
+
+@app.get("/about/team", include_in_schema=False)
+def about_team_page() -> FileResponse:
+    return FileResponse(STATIC_DIR / "about-team.html")
+
+
+@app.get("/about/awards", include_in_schema=False)
+def about_awards_page() -> FileResponse:
+    return FileResponse(STATIC_DIR / "about-awards.html")
+
+
+@app.get("/about/media", include_in_schema=False)
+def about_media_page() -> FileResponse:
+    return FileResponse(STATIC_DIR / "about-media.html")
+
+
+# ---- Services (list + per-service detail) --------------------------------
+@app.get("/services", include_in_schema=False)
+def services_page() -> FileResponse:
+    return FileResponse(STATIC_DIR / "services.html")
+
+
+@app.get("/services/{service_id}", include_in_schema=False)
+def service_detail_page(service_id: str) -> FileResponse:
+    return FileResponse(STATIC_DIR / "service-detail.html")
+
+
+# ---- Resources (PDF library) ---------------------------------------------
+@app.get("/resources", include_in_schema=False)
+def resources_page() -> FileResponse:
+    return FileResponse(STATIC_DIR / "resources.html")
+
+
+# ---- Workshops & training -------------------------------------------------
+@app.get("/workshops", include_in_schema=False)
+def workshops_page() -> FileResponse:
+    return FileResponse(STATIC_DIR / "workshops.html")
+
+
+# ---- Articles written by the team -----------------------------------------
+@app.get("/articles", include_in_schema=False)
+def articles_page() -> FileResponse:
+    return FileResponse(STATIC_DIR / "articles.html")
+
+
+@app.get("/articles/{slug}", include_in_schema=False)
+def article_detail_page(slug: str) -> FileResponse:
+    return FileResponse(STATIC_DIR / "article-detail.html")
+
+
+# ---- FAQ -------------------------------------------------------------------
+@app.get("/faq", include_in_schema=False)
+def faq_page() -> FileResponse:
+    return FileResponse(STATIC_DIR / "faq.html")
+
+
+# ---- Contact Us -------------------------------------------------------------
+@app.get("/contact", include_in_schema=False)
+def contact_page() -> FileResponse:
+    return FileResponse(STATIC_DIR / "contact.html")
+
+
+# ---- Search -----------------------------------------------------------------
+@app.get("/search", include_in_schema=False)
+def search_page() -> FileResponse:
+    return FileResponse(STATIC_DIR / "search.html")
 
 
 @app.get("/hr", include_in_schema=False)
