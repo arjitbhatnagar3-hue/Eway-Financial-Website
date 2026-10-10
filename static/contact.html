@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Contact Us — EWAY Financial Consultancy Pvt. Ltd.</title>
+  <meta name="description" content="Contact EWAY Financial Consultancy Private Limited — Bareilly, Uttar Pradesh." />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23181B20'/%3E%3Ctext x='32' y='44' font-family='Georgia,serif' font-size='36' font-weight='bold' fill='%23EDEFF2' text-anchor='middle'%3EE%3C/text%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/css/style.css" />
+</head>
+<body data-page="contact">
+  <a class="skip-link" href="#main">Skip to content</a>
+  <div id="site-header"></div>
+
+  <main id="main">
+    <section class="page-hero">
+      <div class="container">
+        <p class="breadcrumb"><a href="/">Home</a> / Contact Us</p>
+        <h1>Let&rsquo;s Bring Your Vision to Life</h1>
+        <p class="lead">Ready to elevate your financial strategy? Reach out today to schedule a no-obligation consultation.</p>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <div class="contact-grid">
+          <div class="contact-info reveal">
+            <div class="info-item">
+              <h4>Visit Our Office</h4>
+              <p id="contactAddress">Bareilly, Uttar Pradesh, India</p>
+            </div>
+            <div class="info-item">
+              <h4>Email Us</h4>
+              <p><a href="mailto:caykagarwal@yahoo.com" id="contactEmail">caykagarwal@yahoo.com</a></p>
+            </div>
+            <div class="info-item">
+              <h4>Office Hours</h4>
+              <p>Monday – Saturday · 10:00 AM – 6:00 PM (IST)</p>
+            </div>
+          </div>
+
+          <form class="contact-form reveal" id="contactForm" novalidate>
+            <div class="form-row">
+              <div class="form-field">
+                <label for="cfFirst">First Name <span class="req">(required)</span></label>
+                <input type="text" id="cfFirst" name="firstName" placeholder="First name" autocomplete="given-name" required maxlength="60" />
+              </div>
+              <div class="form-field">
+                <label for="cfLast">Last Name <span class="req">(required)</span></label>
+                <input type="text" id="cfLast" name="lastName" placeholder="Last name" autocomplete="family-name" required maxlength="60" />
+              </div>
+            </div>
+            <div class="form-field">
+              <label for="cfEmail">Email <span class="req">(required)</span></label>
+              <input type="email" id="cfEmail" name="email" placeholder="you@example.com" autocomplete="email" required maxlength="200" />
+            </div>
+            <div class="form-field">
+              <label for="cfSubject">Subject <span class="req">(required)</span></label>
+              <input type="text" id="cfSubject" name="subject" placeholder="How can we help?" required minlength="3" maxlength="120" />
+            </div>
+            <div class="form-field">
+              <label for="cfMessage">Message <span class="req">(required)</span></label>
+              <textarea id="cfMessage" name="message" rows="5" placeholder="Tell us briefly about your requirement…" required minlength="10" maxlength="4000"></textarea>
+            </div>
+            <button type="submit" class="btn-pill" id="contactSubmit">Submit</button>
+            <p class="form-note">We never share your details.</p>
+          </form>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="site-footer"></div>
+
+  <script src="/static/js/layout.js"></script>
+  <script src="/static/js/common.js"></script>
+  <script src="/static/js/pages.js"></script>
+</body>
+</html>
