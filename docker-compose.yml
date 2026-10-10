@@ -1,0 +1,70 @@
+version: "3.9"
+
+# EWAY Financial Consultancy — local Docker Compose setup.
+#
+# Quick start (SQLite, zero extra setup):
+#   docker compose up --build
+#   open http://localhost:8000
+#
+# To use PostgreSQL instead of SQLite, uncomment the `db` service and the
+# `depends_on` / `DATABASE_URL` lines below.
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: eway-financial-website:latest
+    container_name: eway-financial-web
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      # Default: local SQLite file, persisted via the "eway-data" volume below.
+      DATABASE_URL: sqlite:////app/data/eway.db
+
+      # --- Uncomment to use the Postgres service defined below instead ---
+      # DATABASE_URL: postgresql://eway:eway@db:5432/eway
+
+      # First administrator account, created automatically on startup.
+      ADMIN_EMAIL: admin@ewayfinancial.com
+      ADMIN_PASSWORD: change-me-before-first-run
+      ADMIN_NAME: Administrator
+
+      # Cookie / session settings
+      SESSION_TTL_DAYS: "7"
+      COOKIE_SECURE: "auto"
+    volumes:
+      - eway-data:/app/data
+    # depends_on:
+    #   db:
+    #     condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # --- Optional PostgreSQL service -------------------------------------
+  # db:
+  #   image: postgres:16-alpine
+  #   container_name: eway-financial-db
+  #   restart: unless-stopped
+  #   environment:
+  #     POSTGRES_USER: eway
+  #     POSTGRES_PASSWORD: eway
+  #     POSTGRES_DB: eway
+  #   volumes:
+  #     - eway-postgres-data:/var/lib/postgresql/data
+  #   ports:
+  #     - "5432:5432"
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U eway"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+
+volumes:
+  eway-data:
+  # eway-postgres-data:
