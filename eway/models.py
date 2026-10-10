@@ -206,7 +206,7 @@ class Attendance(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     employee_id: Mapped[int] = mapped_column(ForeignKey("employees.id", ondelete="CASCADE"), index=True)
-    date: Mapped[date] = mapped_column(Date, index=True)
+    date: Mapped[datetime.date] = mapped_column(Date, index=True)
     status: Mapped[str] = mapped_column(String(20), default="present")  # present|wfh|half_day|absent|leave
     check_in: Mapped[datetime | None] = mapped_column(UTCDateTime)
     check_out: Mapped[datetime | None] = mapped_column(UTCDateTime)
