@@ -26,6 +26,7 @@ from sqlalchemy.orm import Session
 from company_data import COMPANY, COMPLIANCE, DIRECTORS, FAQS, SERVICES, TESTIMONIALS
 from eway.bootstrap import startup
 from eway.config import IS_SQLITE, STATIC_DIR
+from eway.config import ENVIRONMENT
 from eway.database import get_db
 from eway.routers import auth, content, contact, hr
 
@@ -45,6 +46,9 @@ app = FastAPI(
     ),
     version="2.0.0",
     lifespan=lifespan,
+    docs_url=None if ENVIRONMENT == "production" else "/docs",
+    redoc_url=None if ENVIRONMENT == "production" else "/redoc",
+    openapi_url=None if ENVIRONMENT == "production" else "/openapi.json",
 )
 
 app.include_router(auth.router)
@@ -58,6 +62,10 @@ async def security_headers(request, call_next):
     response = await call_next(request)
     response.headers.setdefault("X-Content-Type-Options", "nosniff")
     response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    response.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
+    response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+    if ENVIRONMENT == "production":
+        response.headers.setdefault("Strict-Transport-Security", "max-age=31536000")
     if request.url.path.startswith("/api/"):
         response.headers.setdefault("Cache-Control", "no-store")
     return response
@@ -171,22 +179,22 @@ def about_page() -> FileResponse:
 
 @app.get("/about/company-profile", include_in_schema=False)
 def about_company_profile_page() -> FileResponse:
-    return FileResponse(STATIC_DIR / "about-company-profile.html")
+    return FileResponse(STATIC_DIR / "about_company_profile.html")
 
 
 @app.get("/about/team", include_in_schema=False)
 def about_team_page() -> FileResponse:
-    return FileResponse(STATIC_DIR / "about-team.html")
+    return FileResponse(STATIC_DIR / "about_team.html")
 
 
 @app.get("/about/awards", include_in_schema=False)
 def about_awards_page() -> FileResponse:
-    return FileResponse(STATIC_DIR / "about-awards.html")
+    return FileResponse(STATIC_DIR / "about_awards.html")
 
 
 @app.get("/about/media", include_in_schema=False)
 def about_media_page() -> FileResponse:
-    return FileResponse(STATIC_DIR / "about-media.html")
+    return FileResponse(STATIC_DIR / "about_media.html")
 
 
 # ---- Services (list + per-service detail) --------------------------------
@@ -197,7 +205,7 @@ def services_page() -> FileResponse:
 
 @app.get("/services/{service_id}", include_in_schema=False)
 def service_detail_page(service_id: str) -> FileResponse:
-    return FileResponse(STATIC_DIR / "service-detail.html")
+    return FileResponse(STATIC_DIR / "services_detail.html")
 
 
 # ---- Resources (PDF library) ---------------------------------------------
@@ -220,7 +228,7 @@ def articles_page() -> FileResponse:
 
 @app.get("/articles/{slug}", include_in_schema=False)
 def article_detail_page(slug: str) -> FileResponse:
-    return FileResponse(STATIC_DIR / "article-detail.html")
+    return FileResponse(STATIC_DIR / "article_detail.html")
 
 
 # ---- FAQ -------------------------------------------------------------------

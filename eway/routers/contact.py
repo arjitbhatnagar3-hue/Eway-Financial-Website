@@ -1,22 +1,28 @@
 """Public contact form + enquiries inbox + user/role management."""
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from ..audit import record_activity
 from ..database import get_db
-from ..models import ContactMessage, Role, User
+from ..models import ActivityEvent, ContactMessage, Role, User
 from ..schemas import ContactMessageIn, EnquiryUpdate, UserUpdate
-from ..security import end_all_sessions, require_admin, require_manager
+from ..security import check_throttle, end_all_sessions, record_throttle_attempt, require_admin, require_manager
 from ..serializers import enquiry_out, user_public
 
 router = APIRouter(tags=["Contact & Admin"])
 
 
 @router.post("/api/contact", status_code=201)
-def submit_contact(payload: ContactMessageIn, db: Session = Depends(get_db)) -> dict:
+def submit_contact(payload: ContactMessageIn, request: Request, db: Session = Depends(get_db)) -> dict:
     """Save an enquiry from the website contact form."""
+    throttle_key = "contact|" + (request.client.host if request.client else "unknown")
+    check_throttle(db, throttle_key)
+    record_throttle_attempt(db, throttle_key)
     msg = ContactMessage(**payload.model_dump())
     db.add(msg)
+    db.flush()
+    record_activity(db, "contact.submitted", None, "contact", msg.id)
     db.commit()
     return {
         "ok": True,
@@ -49,21 +55,23 @@ def list_enquiries(
 
 @router.patch("/api/admin/enquiries/{enquiry_id}")
 def update_enquiry(
-    enquiry_id: str, payload: EnquiryUpdate, _: User = Depends(require_manager), db: Session = Depends(get_db)
+    enquiry_id: str, payload: EnquiryUpdate, actor: User = Depends(require_manager), db: Session = Depends(get_db)
 ) -> dict:
     msg = db.get(ContactMessage, enquiry_id)
     if not msg:
         raise HTTPException(status_code=404, detail="Enquiry not found.")
     msg.status = payload.status
+    record_activity(db, "contact.status_changed", actor, "contact", enquiry_id)
     db.commit()
     return enquiry_out(msg)
 
 
 @router.delete("/api/admin/enquiries/{enquiry_id}", status_code=204)
-def delete_enquiry(enquiry_id: str, _: User = Depends(require_admin), db: Session = Depends(get_db)) -> None:
+def delete_enquiry(enquiry_id: str, actor: User = Depends(require_admin), db: Session = Depends(get_db)) -> None:
     msg = db.get(ContactMessage, enquiry_id)
     if not msg:
         raise HTTPException(status_code=404, detail="Enquiry not found.")
+    record_activity(db, "contact.deleted", actor, "contact", enquiry_id)
     db.delete(msg)
     db.commit()
 
@@ -104,5 +112,25 @@ def update_user(
         user.is_active = payload.is_active
         if not payload.is_active:
             end_all_sessions(db, user)
+    record_activity(db, "user.access_changed", admin, "user", user.id)
     db.commit()
     return user_public(user)
+
+
+@router.get("/api/admin/activity")
+def list_activity(
+    limit: int = Query(default=100, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
+    _: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Admin-only audit trail; event records omit sensitive payload values."""
+    rows = db.scalars(
+        select(ActivityEvent).order_by(ActivityEvent.created_at.desc(), ActivityEvent.id.desc())
+        .offset(offset).limit(limit)
+    ).all()
+    return {"items": [
+        {"id": e.id, "actor": e.actor_name, "role": e.actor_role, "action": e.action,
+         "entity_type": e.entity_type, "entity_id": e.entity_id, "created_at": e.created_at.isoformat()}
+        for e in rows
+    ], "limit": limit, "offset": offset}

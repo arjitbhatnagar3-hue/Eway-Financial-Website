@@ -301,6 +301,7 @@ function navSections() {
     isMgr && { title: "Administration", items: [
       { path: "enquiries", label: "Website Enquiries", icon: "inbox", count: state.counts.newEnquiries },
       u.role === "admin" && { path: "users", label: "Users & Roles", icon: "shield" },
+      u.role === "admin" && { path: "activity", label: "Activity Log", icon: "register" },
     ].filter(Boolean) },
   ].filter(Boolean);
 }
@@ -360,6 +361,7 @@ const ROUTES = [
   { re: /^departments$/, view: viewDepartments, title: "Departments", roles: MANAGERS },
   { re: /^enquiries$/, view: viewEnquiries, title: "Website Enquiries", roles: MANAGERS },
   { re: /^users$/, view: viewUsers, title: "Users & Roles", roles: ["admin"] },
+  { re: /^activity$/, view: viewActivity, title: "Activity Log", roles: ["admin"] },
 ];
 
 const currentPath = () => location.pathname.replace(/^\/hr\/?/, "").replace(/\/+$/, "");
@@ -954,7 +956,7 @@ async function viewEmployees(ctx) {
   const [emps, depts] = await Promise.all([api("/api/hr/employees"), api("/api/hr/departments")]);
   const params = qs();
   const html = `<div class="page-intro"><div><h2>Employees</h2><p>${emps.filter((e) => e.status !== "exited").length} current · ${emps.length} total records</p></div>
-      <div class="actions"><a class="btn" id="exportBtn" href="/api/hr/employees/export.csv" download>${ICONS.download} Export CSV</a>
+      <div class="actions">${state.user.role === "admin" ? `<a class="btn" id="exportBtn" href="/api/hr/employees/export.csv" download>${ICONS.download} Export CSV</a>` : ""}
       <button class="btn btn-primary" id="addEmp">${ICONS.plus} Add employee</button></div></div>
     <div class="card"><div class="toolbar">
       <div class="search">${ICONS.search}<input class="input" id="empSearch" type="search" placeholder="Search name, email, code, designation…" value="${esc(params.get("q") || "")}" /></div>
@@ -977,7 +979,8 @@ async function viewEmployees(ctx) {
     if (q) p.set("q", q);
     if (dept) p.set("department_id", dept);
     if (st) p.set("status", st);
-    $("#exportBtn").href = "/api/hr/employees/export.csv?" + p;
+    const exportBtn = $("#exportBtn");
+    if (exportBtn) exportBtn.href = "/api/hr/employees/export.csv?" + p;
     $("#empTable").innerHTML = list.length
       ? `<div class="table-wrap"><table class="table"><thead><tr><th>Employee</th><th>ID</th><th>Department</th><th>Designation</th><th>Type</th><th>Status</th><th>Joined</th><th>Portal</th></tr></thead><tbody>
         ${list.map((e) => `<tr class="clickable" data-go="employees/${e.id}">
@@ -1394,6 +1397,16 @@ async function viewUsers(ctx) {
   $("#userSearch").addEventListener("input", draw);
   $("#roleFilter").addEventListener("change", draw);
   draw();
+}
+
+async function viewActivity(ctx) {
+  const data = await api("/api/admin/activity?limit=250");
+  const rows = data.items;
+  const html = `<div class="page-intro"><div><h2>Activity log</h2><p>Recent sign-ins and administrative actions. Passwords, payroll values, and personal record contents are never shown here.</p></div></div>
+    <div class="card"><div class="table-wrap"><table class="table"><thead><tr><th>When</th><th>Who</th><th>Role</th><th>Action</th><th>Record</th></tr></thead><tbody>
+    ${rows.map((e) => `<tr><td class="nowrap muted">${fmtDateTime(e.created_at)}</td><td>${esc(e.actor)}</td><td>${badge(e.role)}</td><td>${esc(e.action.replaceAll(".", " · "))}</td><td class="muted">${esc(e.entity_type)} ${esc(e.entity_id)}</td></tr>`).join("")}
+    </tbody></table></div>${rows.length ? "" : '<div class="card-empty">No activity has been recorded yet.</div>'}</div>`;
+  ctx.paint(html);
 }
 
 /* ============================================================

@@ -1,19 +1,40 @@
-# Render Blueprint — deploy from GitHub.
-# On render.com: New + → Blueprint → pick this repo → you'll be asked for the
-# values marked `sync: false` below.
-#
-# DATABASE_URL — paste a PostgreSQL connection string. Good options:
-#   • Neon (neon.tech) or Supabase (supabase.com) — free tiers that don't expire
-#   • Render Postgres — uncomment the `databases:` block at the bottom and the
-#     `fromDatabase` lines instead. NOTE: Render's *free* Postgres is deleted
-#     30 days after creation; use at least the basic-256mb plan for real data.
-# Without DATABASE_URL the app falls back to SQLite on Render's temporary disk,
-# and ALL DATA IS LOST on every deploy/restart.
+# Paid Render Blueprint. Provisioned services stay in Singapore and the
+# database accepts connections only from private services in this project.
 services:
   - type: web
     name: eway-financial
     runtime: python
-    plan: free
+    region: singapore
+    plan: starter
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /api/health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: eway-production-db
+          property: connectionString
+      - key: ENVIRONMENT
+        value: production
+      - key: APP_SECRET
+        generateValue: true
+      - key: SESSION_TTL_DAYS
+        value: "1"
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: ADMIN_NAME
+        value: EWAY Administrator
+      - key: COOKIE_SECURE
+        value: "true"
+
+databases:
+  - name: eway-production-db
+    region: singapore
+    plan: 0.5c-1g
+    databaseName: eway
+    user: eway_app
+    postgresMajorVersion: "17"
+    diskSizeGB: 15
+    ipAllowList: []

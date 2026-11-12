@@ -107,36 +107,12 @@
       </div>`;
   }
 
-  const socialLinks = [
-    {
-      label: "LinkedIn",
-      href: "#",
-      svg: '<svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15"><path d="M20.45 20.45h-3.55v-5.57c0-1.33-.03-3.04-1.85-3.04-1.86 0-2.14 1.45-2.14 2.94v5.67H9.35V9h3.41v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28zM5.34 7.43a2.06 2.06 0 1 1 0-4.12 2.06 2.06 0 0 1 0 4.12zM7.12 20.45H3.56V9h3.56v11.45z"/></svg>',
-    },
-    {
-      label: "X (Twitter)",
-      href: "#",
-      svg: '<svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15"><path d="M18.24 2.25h3.31l-7.23 8.26 8.5 11.24h-6.66l-5.21-6.82-5.97 6.82H1.67l7.73-8.84L1.25 2.25h6.83l4.71 6.23 5.45-6.23zm-1.16 17.52h1.83L7.08 4.13H5.12l11.96 15.64z"/></svg>',
-    },
-    {
-      label: "Instagram",
-      href: "#",
-      svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="15" height="15"><rect x="2.5" y="2.5" width="19" height="19" rx="5"/><circle cx="12" cy="12" r="4.5"/><circle cx="17.8" cy="6.2" r="1.1" fill="currentColor" stroke="none"/></svg>',
-    },
-    {
-      label: "Facebook",
-      href: "#",
-      svg: '<svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15"><path d="M13.5 21v-8h2.7l.4-3.1h-3.1V7.9c0-.9.25-1.5 1.54-1.5h1.66V3.6c-.29-.04-1.27-.12-2.42-.12-2.4 0-4.05 1.47-4.05 4.17v2.34H7.5V13h2.73v8h3.27z"/></svg>',
-    },
-    {
-      label: "YouTube",
-      href: "#",
-      svg: '<svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15"><path d="M21.6 7.2s-.21-1.5-.87-2.16c-.83-.87-1.76-.87-2.19-.92C15.44 4 12 4 12 4h-.01s-3.43 0-6.53.12c-.43.05-1.36.05-2.19.92C2.6 5.7 2.4 7.2 2.4 7.2S2.18 8.95 2.18 10.7v1.6c0 1.75.22 3.5.22 3.5s.21 1.5.86 2.16c.83.87 1.92.84 2.4.93 1.74.17 7.39.12 7.39.12s3.44-.01 6.54-.12c.43-.06 1.36-.06 2.19-.93.65-.66.87-2.16.87-2.16s.22-1.75.22-3.5v-1.6c0-1.75-.22-3.5-.22-3.5zM9.96 14.6V8.8l5.6 2.91z"/></svg>',
-    },
-  ];
+  // Add verified company profile URLs here when available.
+  const activeSocialLinks = [];
 
   function socialRailHTML() {
-    return `<nav class="social-rail" aria-label="Social media">${socialLinks
+    if (!activeSocialLinks.length) return "";
+    return `<nav class="social-rail" aria-label="Social media">${activeSocialLinks
       .map((s) => `<a href="${s.href}" aria-label="${esc(s.label)}" target="_blank" rel="noopener">${s.svg}</a>`)
       .join("")}</nav>`;
   }
@@ -190,9 +166,9 @@
             <li><a href="mailto:caykagarwal@yahoo.com" id="footerEmail">caykagarwal@yahoo.com</a></li>
             <li>Mon – Sat · 10:00 AM – 6:00 PM IST</li>
           </ul>
-          <div class="social-row" aria-label="Social media">
-            ${socialLinks.map((s) => `<a href="${s.href}" aria-label="${esc(s.label)}" target="_blank" rel="noopener">${s.svg}</a>`).join("")}
-          </div>
+          ${activeSocialLinks.length ? `<div class="social-row" aria-label="Social media">
+            ${activeSocialLinks.map((s) => `<a href="${s.href}" aria-label="${esc(s.label)}" target="_blank" rel="noopener">${s.svg}</a>`).join("")}
+          </div>` : ""}
         </div>
       </div>
 
@@ -347,7 +323,7 @@
   }
 
   function mountSocialRail() {
-    if ($(".social-rail")) return;
+    if (!activeSocialLinks.length || $(".social-rail")) return;
     const div = document.createElement("div");
     div.innerHTML = socialRailHTML();
     document.body.appendChild(div.firstElementChild);

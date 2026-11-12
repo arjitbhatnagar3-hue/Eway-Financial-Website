@@ -25,6 +25,11 @@ try:  # python-dotenv is optional: load .env if the package is installed
 except ImportError:  # pragma: no cover
     pass
 
+ENVIRONMENT = os.getenv("ENVIRONMENT", "development").strip().lower()
+APP_SECRET = os.getenv("APP_SECRET", "").strip()
+if ENVIRONMENT == "production" and not APP_SECRET:
+    raise RuntimeError("APP_SECRET must be configured in production.")
+
 
 def _normalize_db_url(url: str) -> str:
     """Hosts hand out `postgres://…` URLs; SQLAlchemy + psycopg3 wants `postgresql+psycopg://…`."""

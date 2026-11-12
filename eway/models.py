@@ -101,6 +101,31 @@ class UserSession(Base):
     user: Mapped[User] = relationship(back_populates="sessions")
 
 
+class ActivityEvent(Base):
+    """Append-only application audit trail; never include passwords or record values."""
+
+    __tablename__ = "activity_events"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    actor_user_id: Mapped[str | None] = mapped_column(String(36), index=True)
+    actor_name: Mapped[str] = mapped_column(String(120), default="System")
+    actor_role: Mapped[str] = mapped_column(String(20), default="system")
+    action: Mapped[str] = mapped_column(String(80), index=True)
+    entity_type: Mapped[str] = mapped_column(String(50), default="")
+    entity_id: Mapped[str] = mapped_column(String(80), default="")
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow, index=True)
+
+
+class LoginFailure(Base):
+    """Shared login throttle state for all web instances; key is a one-way digest."""
+
+    __tablename__ = "login_failures"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    key_hash: Mapped[str] = mapped_column(String(64), index=True)
+    attempted_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow, index=True)
+
+
 # ---------------------------------------------------------------------------
 # Website
 # ---------------------------------------------------------------------------

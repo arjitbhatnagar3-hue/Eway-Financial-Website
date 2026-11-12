@@ -17,6 +17,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
 from ..config import LEAVE_TYPES
+from ..audit import record_activity
 from ..database import get_db
 from ..models import (
     Announcement,
@@ -307,10 +308,13 @@ def list_employees(
     q: str | None = Query(default=None, max_length=100),
     department_id: int | None = None,
     status: str | None = None,
-    _: User = Depends(require_manager),
+    actor: User = Depends(require_manager),
     db: Session = Depends(get_db),
 ) -> list[dict]:
-    return [employee_full(e) for e in db.scalars(_employee_query(q, department_id, status))]
+    rows = [employee_full(e) for e in db.scalars(_employee_query(q, department_id, status))]
+    record_activity(db, "employee.list_viewed", actor, "employees", len(rows))
+    db.commit()
+    return rows
 
 
 @router.get("/employees/export.csv")
@@ -318,13 +322,13 @@ def export_employees(
     q: str | None = None,
     department_id: int | None = None,
     status: str | None = None,
-    _: User = Depends(require_manager),
+    actor: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ) -> Response:
     cols = [
         "employee_code", "full_name", "email", "phone", "designation", "department", "manager",
-        "employment_type", "status", "date_of_joining", "date_of_exit", "date_of_birth",
-        "monthly_gross", "monthly_tds", "pf_applicable", "pan", "bank_account", "bank_ifsc",
+        "employment_type", "status", "date_of_joining", "date_of_exit",
+        "monthly_gross", "monthly_tds", "pf_applicable",
     ]
     buf = io.StringIO()
     writer = csv.DictWriter(buf, fieldnames=cols, extrasaction="ignore")
@@ -332,6 +336,8 @@ def export_employees(
     for e in db.scalars(_employee_query(q, department_id, status)):
         writer.writerow(employee_full(e))
     filename = f"eway-employees-{today_ist().isoformat()}.csv"
+    record_activity(db, "employee.csv_exported", actor, "employees", "filtered")
+    db.commit()
     return Response(
         content=buf.getvalue(),
         media_type="text/csv",
@@ -372,7 +378,7 @@ def _attach_login(db: Session, emp: Employee) -> dict:
 
 
 @router.post("/employees", status_code=201)
-def create_employee(payload: EmployeeCreate, _: User = Depends(require_manager), db: Session = Depends(get_db)) -> dict:
+def create_employee(payload: EmployeeCreate, actor: User = Depends(require_manager), db: Session = Depends(get_db)) -> dict:
     _validate_refs(db, payload)
     data = payload.model_dump(exclude={"create_login"})
     emp = Employee(employee_code=next_employee_code(db), **data)
@@ -381,11 +387,13 @@ def create_employee(payload: EmployeeCreate, _: User = Depends(require_manager),
     login = _attach_login(db, emp) if payload.create_login else None
     db.commit()
     db.refresh(emp)
+    record_activity(db, "employee.created", actor, "employee", emp.id)
+    db.commit()
     return {"employee": employee_full(emp), "login": login}
 
 
 @router.get("/employees/{emp_id}")
-def get_employee(emp_id: int, _: User = Depends(require_manager), db: Session = Depends(get_db)) -> dict:
+def get_employee(emp_id: int, actor: User = Depends(require_manager), db: Session = Depends(get_db)) -> dict:
     emp = _get_or_404(db, Employee, emp_id, "Employee")
     leaves = db.scalars(
         select(LeaveRequest).where(LeaveRequest.employee_id == emp.id).order_by(LeaveRequest.start_date.desc()).limit(10)
@@ -398,6 +406,8 @@ def get_employee(emp_id: int, _: User = Depends(require_manager), db: Session = 
         select(Attendance).where(Attendance.employee_id == emp.id, Attendance.date >= since).order_by(Attendance.date.desc())
     ).all()
     reports = db.scalars(select(Employee).where(Employee.manager_id == emp.id).order_by(Employee.full_name)).all()
+    record_activity(db, "employee.viewed", actor, "employee", emp.id)
+    db.commit()
     return {
         "employee": employee_full(emp),
         "leave_balances": leave_balances(db, emp.id),
@@ -410,7 +420,7 @@ def get_employee(emp_id: int, _: User = Depends(require_manager), db: Session = 
 
 @router.patch("/employees/{emp_id}")
 def update_employee(
-    emp_id: int, payload: EmployeeUpdate, _: User = Depends(require_manager), db: Session = Depends(get_db)
+    emp_id: int, payload: EmployeeUpdate, actor: User = Depends(require_manager), db: Session = Depends(get_db)
 ) -> dict:
     emp = _get_or_404(db, Employee, emp_id, "Employee")
     _validate_refs(db, payload, self_id=emp.id)
@@ -425,11 +435,13 @@ def update_employee(
         end_all_sessions(db, emp.user)
     db.commit()
     db.refresh(emp)
+    record_activity(db, "employee.updated", actor, "employee", emp.id)
+    db.commit()
     return {"employee": employee_full(emp)}
 
 
 @router.post("/employees/{emp_id}/login")
-def create_or_reset_login(emp_id: int, _: User = Depends(require_manager), db: Session = Depends(get_db)) -> dict:
+def create_or_reset_login(emp_id: int, actor: User = Depends(require_manager), db: Session = Depends(get_db)) -> dict:
     """Create a portal login for the employee, or reset their password to a new temporary one."""
     emp = _get_or_404(db, Employee, emp_id, "Employee")
     if emp.user:
@@ -440,18 +452,33 @@ def create_or_reset_login(emp_id: int, _: User = Depends(require_manager), db: S
         emp.user.is_active = True
         end_all_sessions(db, emp.user)
         db.commit()
+        record_activity(db, "employee.login_reset", actor, "employee", emp.id)
+        db.commit()
         return {"reset": True, "email": emp.user.email, "temp_password": temp}
     login = _attach_login(db, emp)
+    db.commit()
+    record_activity(db, "employee.login_created", actor, "employee", emp.id)
     db.commit()
     return {"reset": False, "email": emp.email, **login}
 
 
 @router.delete("/employees/{emp_id}", status_code=204)
-def delete_employee(emp_id: int, _: User = Depends(require_admin), db: Session = Depends(get_db)) -> None:
-    """Permanently delete an employee and their HR records (prefer status = exited)."""
+def delete_employee(emp_id: int, actor: User = Depends(require_admin), db: Session = Depends(get_db)) -> None:
+    """Only remove a never-used employee record; history must be retained."""
     emp = _get_or_404(db, Employee, emp_id, "Employee")
+    has_history = any((
+        db.scalar(select(func.count()).select_from(LeaveRequest).where(LeaveRequest.employee_id == emp.id)),
+        db.scalar(select(func.count()).select_from(Attendance).where(Attendance.employee_id == emp.id)),
+        db.scalar(select(func.count()).select_from(Payslip).where(Payslip.employee_id == emp.id)),
+    ))
+    if has_history:
+        raise HTTPException(status_code=409, detail="This employee has HR history. Mark the employee as exited to preserve records.")
+    if emp.user:
+        emp.user.is_active = False
+        end_all_sessions(db, emp.user)
     for r in db.scalars(select(Employee).where(Employee.manager_id == emp.id)):
         r.manager_id = None
+    record_activity(db, "employee.deleted", actor, "employee", emp.id)
     db.delete(emp)
     db.commit()
 
@@ -514,6 +541,8 @@ def apply_leave(payload: LeaveApply, emp: Employee = Depends(require_employee), 
     db.add(lv)
     db.commit()
     db.refresh(lv)
+    record_activity(db, "leave.requested", emp.user, "leave", lv.id)
+    db.commit()
     return leave_out(lv)
 
 
@@ -529,6 +558,8 @@ def _review(db: Session, leave_id: int, reviewer: User, status: str, note: str |
     lv.reviewed_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(lv)
+    record_activity(db, f"leave.{status}", reviewer, "leave", lv.id)
+    db.commit()
     return leave_out(lv)
 
 
@@ -555,6 +586,8 @@ def cancel_leave(leave_id: int, emp: Employee = Depends(require_employee), db: S
         lv.status = "cancelled"
         db.commit()
         db.refresh(lv)
+        record_activity(db, "leave.cancelled", emp.user, "leave", lv.id)
+        db.commit()
         return leave_out(lv)
     raise HTTPException(status_code=409, detail="Only pending or upcoming approved leave can be cancelled.")
 
@@ -575,6 +608,8 @@ def check_in(emp: Employee = Depends(require_employee), db: Session = Depends(ge
     if att.status in ("absent", "leave"):
         att.status = "present"
     db.commit()
+    record_activity(db, "attendance.check_in", emp.user, "attendance", att.id)
+    db.commit()
     return attendance_out(att)
 
 
@@ -586,6 +621,8 @@ def check_out(emp: Employee = Depends(require_employee), db: Session = Depends(g
     if att.check_out:
         raise HTTPException(status_code=409, detail="You've already checked out today.")
     att.check_out = now_ist()
+    db.commit()
+    record_activity(db, "attendance.check_out", emp.user, "attendance", att.id)
     db.commit()
     return attendance_out(att)
 
@@ -670,7 +707,7 @@ def attendance_register(
 
 
 @router.put("/attendance")
-def mark_attendance(payload: AttendanceMark, _: User = Depends(require_manager), db: Session = Depends(get_db)) -> dict:
+def mark_attendance(payload: AttendanceMark, actor: User = Depends(require_manager), db: Session = Depends(get_db)) -> dict:
     _get_or_404(db, Employee, payload.employee_id, "Employee")
     if payload.date > today_ist():
         raise HTTPException(status_code=422, detail="Attendance can't be marked for a future date.")
@@ -683,6 +720,8 @@ def mark_attendance(payload: AttendanceMark, _: User = Depends(require_manager),
     att.status = payload.status
     att.note = payload.note
     db.commit()
+    record_activity(db, "attendance.marked", actor, "attendance", att.id)
+    db.commit()
     return attendance_out(att)
 
 
@@ -694,17 +733,22 @@ def _slip_query():
 
 
 @router.post("/payroll/run")
-def payroll_run(payload: PayrollRun, _: User = Depends(require_manager), db: Session = Depends(get_db)) -> dict:
+def payroll_run(payload: PayrollRun, actor: User = Depends(require_manager), db: Session = Depends(get_db)) -> dict:
     """Generate (or refresh) draft payslips for a month. Paid payslips are never changed."""
-    return run_payroll(db, payload.period)
+    result = run_payroll(db, payload.period)
+    record_activity(db, "payroll.generated", actor, "payroll_period", payload.period)
+    db.commit()
+    return result
 
 
 @router.get("/payroll")
-def payroll_list(period: str, _: User = Depends(require_manager), db: Session = Depends(get_db)) -> dict:
+def payroll_list(period: str, actor: User = Depends(require_manager), db: Session = Depends(get_db)) -> dict:
     if not PERIOD_RE.match(period):
         raise HTTPException(status_code=422, detail="Period must be YYYY-MM.")
     slips = db.scalars(_slip_query().where(Payslip.period == period)).all()
     slips = sorted(slips, key=lambda p: p.employee.employee_code)
+    record_activity(db, "payroll.viewed", actor, "payroll_period", period)
+    db.commit()
     totals = {k: sum(getattr(p, k) for p in slips) for k in ("gross", "lop_deduction", "pf", "tds", "net_pay")}
     return {
         "period": period,
@@ -716,21 +760,25 @@ def payroll_list(period: str, _: User = Depends(require_manager), db: Session = 
 
 
 @router.post("/payroll/{slip_id}/pay")
-def payroll_mark_paid(slip_id: int, _: User = Depends(require_manager), db: Session = Depends(get_db)) -> dict:
+def payroll_mark_paid(slip_id: int, actor: User = Depends(require_manager), db: Session = Depends(get_db)) -> dict:
     slip = _get_or_404(db, Payslip, slip_id, "Payslip")
     if slip.status != "paid":
         slip.status = "paid"
         slip.paid_at = datetime.now(timezone.utc)
         db.commit()
+        record_activity(db, "payroll.marked_paid", actor, "payslip", slip.id)
+        db.commit()
     return payslip_out(slip)
 
 
 @router.post("/payroll/pay-all")
-def payroll_pay_all(payload: PayrollRun, _: User = Depends(require_manager), db: Session = Depends(get_db)) -> dict:
+def payroll_pay_all(payload: PayrollRun, actor: User = Depends(require_manager), db: Session = Depends(get_db)) -> dict:
     now = datetime.now(timezone.utc)
     slips = db.scalars(select(Payslip).where(Payslip.period == payload.period, Payslip.status == "draft")).all()
     for s in slips:
         s.status, s.paid_at = "paid", now
+    db.commit()
+    record_activity(db, "payroll.period_marked_paid", actor, "payroll_period", payload.period)
     db.commit()
     return {"period": payload.period, "marked_paid": len(slips)}
 
@@ -749,6 +797,8 @@ def get_payslip(slip_id: int, user: User = Depends(require_staff), db: Session =
     is_owner = slip.employee.user_id == user.id and slip.status == "paid"
     if not (is_owner or user.role in Role.MANAGERS):
         raise HTTPException(status_code=404, detail="Payslip not found.")
+    record_activity(db, "payslip.viewed", user, "payslip", slip.id)
+    db.commit()
     return payslip_out(slip)
 
 
@@ -772,11 +822,14 @@ def create_announcement(payload: AnnouncementIn, user: User = Depends(require_ma
     db.add(a)
     db.commit()
     db.refresh(a)
+    record_activity(db, "announcement.created", user, "announcement", a.id)
+    db.commit()
     return announcement_out(a)
 
 
 @router.delete("/announcements/{ann_id}", status_code=204)
-def delete_announcement(ann_id: int, _: User = Depends(require_manager), db: Session = Depends(get_db)) -> None:
+def delete_announcement(ann_id: int, actor: User = Depends(require_manager), db: Session = Depends(get_db)) -> None:
     a = _get_or_404(db, Announcement, ann_id, "Announcement")
+    record_activity(db, "announcement.deleted", actor, "announcement", a.id)
     db.delete(a)
     db.commit()

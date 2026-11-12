@@ -97,7 +97,7 @@ function renderHomeWorkshops(workshops) {
     .map(
       (w) => `
       <div class="workshop-card reveal">
-        ${w.image ? `<div class="workshop-image"><img src="/static/${w.image}" alt="" loading="lazy" /></div>` : ""}
+        ${w.image ? `<div class="workshop-image"><img src="/static/${w.image}" alt="" loading="lazy" onerror="this.closest('.workshop-image').remove()" /></div>` : ""}
         <div class="workshop-body">
           <span class="workshop-mode">${esc(w.mode)}</span>
           <h3>${esc(w.title)}</h3>
@@ -213,11 +213,8 @@ async function initAboutTeam() {
           (m) => `
           <div class="team-card reveal">
             <div class="team-photo">
-              ${
-                m.photo
-                  ? `<img src="/static/${m.photo}" alt="${esc(m.name)}" loading="lazy" />`
-                  : `<div class="team-initials">${esc(initials(m.name))}</div>`
-              }
+              <div class="team-initials" aria-hidden="true">${esc(initials(m.name))}</div>
+              ${m.photo ? `<img src="/static/${m.photo}" alt="${esc(m.name)}" loading="lazy" onerror="this.remove()" />` : ""}
             </div>
             <div class="team-body">
               <h3>${esc(m.name)}</h3>
@@ -246,7 +243,7 @@ async function initAboutAwards() {
         .map(
           (a) => `
           <div class="award-card reveal">
-            ${a.image ? `<div class="award-image"><img src="/static/${a.image}" alt="${esc(a.title)}" loading="lazy" /></div>` : ""}
+            ${a.image ? `<div class="award-image"><img src="/static/${a.image}" alt="${esc(a.title)}" loading="lazy" onerror="this.closest('.award-image').remove()" /></div>` : ""}
             <div class="award-body">
               <span class="award-year">${a.year}</span>
               <h3>${esc(a.title)}</h3>
@@ -395,7 +392,7 @@ async function initWorkshops() {
         .map(
           (w) => `
           <div class="workshop-card reveal">
-            ${w.image ? `<div class="workshop-image"><img src="/static/${w.image}" alt="${esc(w.title)}" loading="lazy" /></div>` : ""}
+            ${w.image ? `<div class="workshop-image"><img src="/static/${w.image}" alt="${esc(w.title)}" loading="lazy" onerror="this.closest('.workshop-image').remove()" /></div>` : ""}
             <div class="workshop-body">
               <span class="workshop-mode">${esc(w.mode)}</span>
               <h3>${esc(w.title)}</h3>

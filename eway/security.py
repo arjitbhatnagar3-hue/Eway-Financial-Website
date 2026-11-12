@@ -10,17 +10,15 @@ Authentication & authorization helpers.
 import hashlib
 import hmac
 import secrets
-import time
-from collections import defaultdict, deque
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from fastapi import Depends, HTTPException, Request, Response
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
-from .config import COOKIE_NAME, COOKIE_SECURE, PBKDF2_ITERATIONS, SESSION_TTL
+from .config import APP_SECRET, COOKIE_NAME, COOKIE_SECURE, PBKDF2_ITERATIONS, SESSION_TTL
 from .database import get_db
-from .models import Employee, Role, User, UserSession
+from .models import Employee, LoginFailure, Role, User, UserSession
 
 
 # ---------------------------------------------------------------------------
@@ -158,27 +156,38 @@ def require_employee(user: User = Depends(require_staff), db: Session = Depends(
 
 
 # ---------------------------------------------------------------------------
-# Tiny in-memory login throttle (per IP + email). Use Redis for multi-instance.
+# Database-backed throttle is shared across app instances and restarts.
 # ---------------------------------------------------------------------------
-_FAILED: dict[str, deque] = defaultdict(deque)
 MAX_FAILURES = 8
 WINDOW_SECONDS = 15 * 60
 
 
-def check_login_throttle(key: str) -> None:
-    q = _FAILED[key]
-    cutoff = time.monotonic() - WINDOW_SECONDS
-    while q and q[0] < cutoff:
-        q.popleft()
-    if len(q) >= MAX_FAILURES:
+def _throttle_hash(key: str) -> str:
+    secret = APP_SECRET or "eway-local-throttle-key"
+    return hmac.new(secret.encode(), key.encode("utf-8", "replace"), hashlib.sha256).hexdigest()
+
+
+def check_throttle(db: Session, key: str) -> None:
+    cutoff = datetime.now(timezone.utc) - timedelta(seconds=WINDOW_SECONDS)
+    hashed = _throttle_hash(key)
+    db.execute(delete(LoginFailure).where(LoginFailure.attempted_at < cutoff))
+    failures = db.scalar(
+        select(func.count(LoginFailure.id)).where(
+            LoginFailure.key_hash == hashed, LoginFailure.attempted_at >= cutoff
+        )
+    ) or 0
+    db.commit()
+    if failures >= MAX_FAILURES:
         raise HTTPException(
-            status_code=429, detail="Too many failed attempts. Please try again in 15 minutes."
+            status_code=429, detail="Too many attempts. Please try again in 15 minutes."
         )
 
 
-def record_login_failure(key: str) -> None:
-    _FAILED[key].append(time.monotonic())
+def record_throttle_attempt(db: Session, key: str) -> None:
+    db.add(LoginFailure(key_hash=_throttle_hash(key)))
+    db.commit()
 
 
-def clear_login_failures(key: str) -> None:
-    _FAILED.pop(key, None)
+def clear_throttle(db: Session, key: str) -> None:
+    db.execute(delete(LoginFailure).where(LoginFailure.key_hash == _throttle_hash(key)))
+    db.commit()
