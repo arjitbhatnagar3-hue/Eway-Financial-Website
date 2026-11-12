@@ -75,7 +75,7 @@ COMPANY = Company(
     paid_up_capital_formatted=_inr_full(8_700_000.0),
     authorized_capital_short=_inr_short(10_000_000.0),
     paid_up_capital_short=_inr_short(8_700_000.0),
-    email="caykagarwal@yahoo.com",
+    email="sanjaybhatnagar@gmail.com",
     address_lines=[
         "Bhatnagar Complex, 2nd Floor",
         "Mini Bye Pass Road, Opp. Officers Enclave",
@@ -108,7 +108,7 @@ SERVICES: list[Service] = [
             "licenses and registrations, and ongoing secretarial support "
             "for companies, LLPs and proprietorships."
         ),
-        image="images/service-advisory.jpg",
+        image="images/site-progress-03.jpg",
     ),
     Service(
         id="financial-planning",
@@ -119,7 +119,7 @@ SERVICES: list[Service] = [
             "modelling that help you make confident, data-driven decisions "
             "for growth."
         ),
-        image="images/service-planning.jpg",
+        image="images/site-completion-02.jpg",
     ),
     Service(
         id="taxation",
@@ -130,7 +130,6 @@ SERVICES: list[Service] = [
             "and representation before authorities — for individuals and "
             "businesses alike."
         ),
-        image="images/service-tax.jpg",
     ),
     Service(
         id="credit",
@@ -141,7 +140,7 @@ SERVICES: list[Service] = [
             "documentation and negotiation with banks and NBFCs to secure "
             "funding that fits."
         ),
-        image="images/service-credit.jpg",
+        image="images/site-progress-01.jpg",
     ),
     Service(
         id="accounting",
@@ -151,7 +150,6 @@ SERVICES: list[Service] = [
             "Day-to-day bookkeeping, payroll support, TDS and statutory "
             "ledgers, monthly closings and clean management accounts."
         ),
-        image="images/service-accounting.jpg",
     ),
     Service(
         id="audit",
@@ -162,7 +160,6 @@ SERVICES: list[Service] = [
             "compliance calendars that keep you ahead of MCA and tax "
             "deadlines."
         ),
-        image="images/service-audit.jpg",
     ),
 ]
 

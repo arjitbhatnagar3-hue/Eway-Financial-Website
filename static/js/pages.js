@@ -67,48 +67,6 @@ function renderHomeStats(stats) {
   set("status", stats.status);
 }
 
-function renderHomeArticles(articles) {
-  const grid = $("#articlesPreviewGrid");
-  if (!grid) return;
-  grid.setAttribute("aria-busy", "false");
-  grid.innerHTML = articles
-    .slice(0, 3)
-    .map(
-      (a) => `
-      <a class="article-card reveal" href="/articles/${encodeURIComponent(a.slug)}">
-        ${a.image ? `<div class="article-image"><img src="/static/${a.image}" alt="" loading="lazy" /></div>` : ""}
-        <div class="article-body">
-          <p class="article-category">${esc(a.category)}</p>
-          <h3>${esc(a.title)}</h3>
-          <p class="excerpt">${esc(a.excerpt)}</p>
-          <div class="article-meta"><span>${esc(a.author)}</span><span>${formatDate(a.date)}</span></div>
-        </div>
-      </a>`
-    )
-    .join("");
-}
-
-function renderHomeWorkshops(workshops) {
-  const grid = $("#workshopsPreviewGrid");
-  if (!grid) return;
-  grid.setAttribute("aria-busy", "false");
-  grid.innerHTML = workshops
-    .slice(0, 3)
-    .map(
-      (w) => `
-      <div class="workshop-card reveal">
-        ${w.image ? `<div class="workshop-image"><img src="/static/${w.image}" alt="" loading="lazy" onerror="this.closest('.workshop-image').remove()" /></div>` : ""}
-        <div class="workshop-body">
-          <span class="workshop-mode">${esc(w.mode)}</span>
-          <h3>${esc(w.title)}</h3>
-          <p class="desc">${esc(w.description)}</p>
-          <p class="workshop-facts">${esc(w.duration)} · ${esc(w.audience)}</p>
-        </div>
-      </div>`
-    )
-    .join("");
-}
-
 function renderHomeFaqTeaser(faqs) {
   const list = $("#faqTeaserList");
   if (!list) return;
@@ -128,22 +86,18 @@ function renderHomeFaqTeaser(faqs) {
 async function initHome() {
   initContactForm();
   try {
-    const [company, services, stats, testimonials, faqs, articles, workshops] = await Promise.all([
+    const [company, services, stats, testimonials, faqs] = await Promise.all([
       fetchJSON("/api/company"),
       fetchJSON("/api/services"),
       fetchJSON("/api/stats"),
       fetchJSON("/api/testimonials"),
       fetchJSON("/api/faq"),
-      fetchJSON("/api/articles"),
-      fetchJSON("/api/workshops"),
     ]);
     $$("#contactAddress, #heroAddress").forEach((el) => (el.textContent = company.address_line));
     renderHomeStats(stats);
     renderHomeServices(services);
     renderHomeTestimonials(testimonials);
     renderHomeFaqTeaser(faqs);
-    renderHomeArticles(articles);
-    renderHomeWorkshops(workshops);
   } catch (err) {
     console.error("Failed to load homepage data:", err);
     showToast("Could not load some content from the server. Please refresh.", true);
@@ -261,35 +215,6 @@ async function initAboutAwards() {
   initReveals();
 }
 
-/* ======================= ABOUT: MEDIA ======================= */
-async function initAboutMedia() {
-  try {
-    const media = await fetchJSON("/api/media");
-    const list = $("#mediaList");
-    if (list) {
-      list.innerHTML = media
-        .map(
-          (m) => `
-          <article class="media-item reveal">
-            <div class="media-meta">
-              <span class="media-outlet">${esc(m.outlet)}</span>
-              <span class="media-date">${formatDate(m.date)}</span>
-            </div>
-            <div class="media-body">
-              <h3>${esc(m.title)}</h3>
-              <p>${esc(m.excerpt)}</p>
-            </div>
-          </article>`
-        )
-        .join("");
-    }
-  } catch (err) {
-    console.error(err);
-    showToast("Could not load media mentions.", true);
-  }
-  initReveals();
-}
-
 /* ======================= SERVICES (list) ======================= */
 async function initServices() {
   try {
@@ -342,145 +267,6 @@ async function initServiceDetail() {
     const titleEl = $("#serviceTitle");
     if (titleEl) titleEl.textContent = "Service not found";
     showToast("That service could not be found.", true);
-  }
-  initReveals();
-}
-
-/* ======================= RESOURCES (PDFs) ======================= */
-async function initResources() {
-  try {
-    const resources = await fetchJSON("/api/resources");
-    const grid = $("#resourceGrid");
-    if (grid) {
-      grid.innerHTML = resources
-        .map(
-          (r) => `
-          <div class="resource-card reveal">
-            <div class="resource-icon">PDF</div>
-            <div class="resource-body">
-              <p class="resource-category">${esc(r.category)}</p>
-              <h3>${esc(r.title)}</h3>
-              <p>${esc(r.description)} · ${r.pages} page${r.pages === 1 ? "" : "s"}</p>
-              <div class="resource-actions">
-                <button type="button" class="btn-pill btn-pill-sm" data-view-pdf="/static/${r.file}" data-title="${esc(r.title)}">View PDF</button>
-                <a class="btn-outline" href="/static/${r.file}" download>Download</a>
-              </div>
-            </div>
-          </div>`
-        )
-        .join("");
-      grid.addEventListener("click", (e) => {
-        const btn = e.target.closest("[data-view-pdf]");
-        if (!btn) return;
-        openPdfModal(btn.getAttribute("data-view-pdf"), btn.getAttribute("data-title"));
-      });
-    }
-  } catch (err) {
-    console.error(err);
-    showToast("Could not load the resource library.", true);
-  }
-  initReveals();
-}
-
-/* ======================= WORKSHOPS & TRAINING ======================= */
-async function initWorkshops() {
-  try {
-    const workshops = await fetchJSON("/api/workshops");
-    const grid = $("#workshopGrid");
-    if (grid) {
-      grid.innerHTML = workshops
-        .map(
-          (w) => `
-          <div class="workshop-card reveal">
-            ${w.image ? `<div class="workshop-image"><img src="/static/${w.image}" alt="${esc(w.title)}" loading="lazy" onerror="this.closest('.workshop-image').remove()" /></div>` : ""}
-            <div class="workshop-body">
-              <span class="workshop-mode">${esc(w.mode)}</span>
-              <h3>${esc(w.title)}</h3>
-              <p class="desc">${esc(w.description)}</p>
-              <p class="workshop-facts">
-                <span>Duration: ${esc(w.duration)}</span>
-                <span>Audience: ${esc(w.audience)}</span>
-                ${w.next_batch ? `<span>Next batch: ${esc(w.next_batch)}</span>` : ""}
-              </p>
-              <div class="topic-chips">${w.topics.map((t) => `<span>${esc(t)}</span>`).join("")}</div>
-              <a class="btn-pill btn-pill-sm" style="margin-top:8px; align-self:flex-start;" href="/contact">Register Interest</a>
-            </div>
-          </div>`
-        )
-        .join("");
-    }
-  } catch (err) {
-    console.error(err);
-    showToast("Could not load workshops.", true);
-  }
-  initReveals();
-}
-
-/* ======================= ARTICLES (list) ======================= */
-async function initArticles() {
-  try {
-    const articles = await fetchJSON("/api/articles");
-    const grid = $("#articleGrid");
-    if (grid) {
-      grid.classList.add("article-grid");
-      grid.innerHTML = articles
-        .map(
-          (a) => `
-          <a class="article-card reveal" href="/articles/${encodeURIComponent(a.slug)}">
-            ${a.image ? `<div class="article-image"><img src="/static/${a.image}" alt="" loading="lazy" /></div>` : ""}
-            <div class="article-body">
-              <p class="article-category">${esc(a.category)}</p>
-              <h3>${esc(a.title)}</h3>
-              <p class="excerpt">${esc(a.excerpt)}</p>
-              <div class="article-meta"><span>By ${esc(a.author)}</span><span>${esc(a.read_minutes)} min read</span></div>
-            </div>
-          </a>`
-        )
-        .join("");
-    }
-  } catch (err) {
-    console.error(err);
-    showToast("Could not load articles.", true);
-  }
-  initReveals();
-}
-
-/* ======================= ARTICLE DETAIL ======================= */
-async function initArticleDetail() {
-  const slug = lastPathSegment();
-  try {
-    const [article, all] = await Promise.all([fetchJSON(`/api/articles/${encodeURIComponent(slug)}`), fetchJSON("/api/articles")]);
-    document.title = `${article.title} — EWAY Financial Consultancy`;
-    $("#articleCategory") && ($("#articleCategory").textContent = article.category);
-    $("#articleTitle") && ($("#articleTitle").textContent = article.title);
-    $("#articleMeta") && ($("#articleMeta").textContent = `By ${article.author} · ${formatDate(article.date)} · ${article.read_minutes} min read`);
-    const imgWrap = $("#articleImageWrap");
-    if (imgWrap && article.image) imgWrap.innerHTML = `<img src="/static/${article.image}" alt="${esc(article.title)}" />`;
-    const body = $("#articleBody");
-    if (body) body.innerHTML = article.body.map((p) => `<p>${esc(p)}</p>`).join("");
-
-    const more = $("#moreArticles");
-    if (more) {
-      more.innerHTML = all
-        .filter((a) => a.slug !== article.slug)
-        .slice(0, 3)
-        .map(
-          (a) => `
-          <a class="article-card reveal" href="/articles/${encodeURIComponent(a.slug)}">
-            ${a.image ? `<div class="article-image"><img src="/static/${a.image}" alt="" loading="lazy" /></div>` : ""}
-            <div class="article-body">
-              <p class="article-category">${esc(a.category)}</p>
-              <h3>${esc(a.title)}</h3>
-              <p class="excerpt">${esc(a.excerpt)}</p>
-            </div>
-          </a>`
-        )
-        .join("");
-    }
-  } catch (err) {
-    console.error(err);
-    $("#articleTitle") && ($("#articleTitle").textContent = "Article not found");
-    showToast("That article could not be found.", true);
   }
   initReveals();
 }
@@ -542,7 +328,7 @@ async function initSearch() {
     if (heading) heading.textContent = "Search EWAY Financial";
     if (empty) {
       empty.hidden = false;
-      empty.textContent = "Type a search term above — try “GST”, “loan”, “workshop” or a team member's name.";
+      empty.textContent = "Type a search term above — try “GST”, “loan” or a team member's name.";
     }
     return;
   }
@@ -583,13 +369,8 @@ const PAGE_INIT = {
   "about-company-profile": initAboutCompanyProfile,
   "about-team": initAboutTeam,
   "about-awards": initAboutAwards,
-  "about-media": initAboutMedia,
   services: initServices,
   "service-detail": initServiceDetail,
-  resources: initResources,
-  workshops: initWorkshops,
-  articles: initArticles,
-  "article-detail": initArticleDetail,
   faq: initFaq,
   contact: initContact,
   search: initSearch,

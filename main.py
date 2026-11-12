@@ -192,11 +192,6 @@ def about_awards_page() -> FileResponse:
     return FileResponse(STATIC_DIR / "about_awards.html")
 
 
-@app.get("/about/media", include_in_schema=False)
-def about_media_page() -> FileResponse:
-    return FileResponse(STATIC_DIR / "about_media.html")
-
-
 # ---- Services (list + per-service detail) --------------------------------
 @app.get("/services", include_in_schema=False)
 def services_page() -> FileResponse:
@@ -206,29 +201,6 @@ def services_page() -> FileResponse:
 @app.get("/services/{service_id}", include_in_schema=False)
 def service_detail_page(service_id: str) -> FileResponse:
     return FileResponse(STATIC_DIR / "services_detail.html")
-
-
-# ---- Resources (PDF library) ---------------------------------------------
-@app.get("/resources", include_in_schema=False)
-def resources_page() -> FileResponse:
-    return FileResponse(STATIC_DIR / "resources.html")
-
-
-# ---- Workshops & training -------------------------------------------------
-@app.get("/workshops", include_in_schema=False)
-def workshops_page() -> FileResponse:
-    return FileResponse(STATIC_DIR / "workshops.html")
-
-
-# ---- Articles written by the team -----------------------------------------
-@app.get("/articles", include_in_schema=False)
-def articles_page() -> FileResponse:
-    return FileResponse(STATIC_DIR / "articles.html")
-
-
-@app.get("/articles/{slug}", include_in_schema=False)
-def article_detail_page(slug: str) -> FileResponse:
-    return FileResponse(STATIC_DIR / "article_detail.html")
 
 
 # ---- FAQ -------------------------------------------------------------------

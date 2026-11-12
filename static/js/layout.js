@@ -1,6 +1,6 @@
 /* ============================================================
    EWAY Financial Consultancy — shared site layout
-   Builds the header (logo, 8-item nav with dropdowns, search,
+   Builds the header (logo, 5-item nav with dropdowns, search,
    auth slot), the floating social rail, the scroll-triggered
    mini brand mark, and the footer. Included on every page.
    ============================================================ */
@@ -41,13 +41,9 @@
         { label: "Company Profile", href: "/about/company-profile", hint: "Registered MCA details" },
         { label: "Team Profile", href: "/about/team", hint: "Meet the people behind EWAY" },
         { label: "Awards & Recognition", href: "/about/awards", hint: "Milestones we're proud of" },
-        { label: "Media", href: "/about/media", hint: "Press & media mentions" },
       ],
     },
     { label: "Services", href: "/services", servicesDropdown: true },
-    { label: "Resources", href: "/resources" },
-    { label: "Workshops & Training", href: "/workshops" },
-    { label: "Articles", href: "/articles" },
     { label: "FAQ", href: "/faq" },
     { label: "Contact Us", href: "/contact" },
   ];
@@ -88,7 +84,7 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="17" height="17"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             </button>
             <form class="search-form" id="searchForm" role="search" action="/search" method="get">
-              <input type="search" name="q" id="searchInput" placeholder="Search services, articles…" maxlength="120" autocomplete="off" />
+              <input type="search" name="q" id="searchInput" placeholder="Search services…" maxlength="120" autocomplete="off" />
               <button type="submit" aria-label="Search">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="14" height="14"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
               </button>
@@ -138,7 +134,6 @@
             <li><a href="/about/company-profile">Company Profile</a></li>
             <li><a href="/about/team">Team Profile</a></li>
             <li><a href="/about/awards">Awards &amp; Recognition</a></li>
-            <li><a href="/about/media">Media</a></li>
           </ul>
         </div>
 
@@ -150,9 +145,6 @@
         <div class="footer-col">
           <h4>Explore</h4>
           <ul>
-            <li><a href="/resources">Resource Library (PDFs)</a></li>
-            <li><a href="/workshops">Workshops &amp; Training</a></li>
-            <li><a href="/articles">Articles</a></li>
             <li><a href="/faq">FAQ</a></li>
             <li><a href="/contact">Contact Us</a></li>
             <li><a href="/hr">Staff Login · HR Portal</a></li>
@@ -163,7 +155,7 @@
           <h4>Reach Us</h4>
           <ul class="footer-contact">
             <li id="footerAddress">Bareilly, Uttar Pradesh, India</li>
-            <li><a href="mailto:caykagarwal@yahoo.com" id="footerEmail">caykagarwal@yahoo.com</a></li>
+            <li><a href="mailto:sanjaybhatnagar@gmail.com" id="footerEmail">sanjaybhatnagar@gmail.com</a></li>
             <li>Mon – Sat · 10:00 AM – 6:00 PM IST</li>
           </ul>
           ${activeSocialLinks.length ? `<div class="social-row" aria-label="Social media">

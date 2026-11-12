@@ -72,21 +72,13 @@ The app creates missing tables at startup. This does not alter existing table st
 
 The homepage nav exposes 8 top-level sections, each a real page:
 
-- **Home** (`/`) — centered brand + city, services, testimonials, article &
-  workshop previews, FAQ teaser and a contact form.
-- **About Us** (`/about`) — overview with 4 sub-pages:
+- **Home** (`/`) — services, testimonials, FAQ teaser and a contact form.
+- **About Us** (`/about`) — overview with 3 sub-pages:
   - `/about/company-profile` — registered MCA details & compliance status
   - `/about/team` — team profiles (photos + bios)
   - `/about/awards` — awards & recognition
-  - `/about/media` — press & media mentions
 - **Services** (`/services`) — list of advisory services, each with its own
   page at `/services/{service-id}`.
-- **Resources** (`/resources`) — a library of downloadable PDFs; each can be
-  previewed in-page (modal viewer) or downloaded.
-- **Workshops & Training** (`/workshops`) — upcoming workshops and training
-  programmes.
-- **Articles** (`/articles`) — articles written by the team, each with its
-  own page at `/articles/{slug}`.
 - **FAQ** (`/faq`) — frequently asked questions.
 - **Contact Us** (`/contact`) — contact form and office details.
 
@@ -100,14 +92,12 @@ HR portal). Social links appear after verified company profile URLs are added.
 .
 ├── main.py                 # FastAPI app: API routes, page routes, static serving
 ├── company_data.py         # Core company facts, services, directors, FAQ (source of truth)
-├── content_data.py         # Team, awards, media, articles, workshops, resources (source of truth)
-├── scripts/
-│   └── generate_pdfs.py    # Regenerates the sample PDFs in static/resources/
+├── content_data.py         # Team and awards (source of truth)
 ├── eway/
 │   ├── routers/
 │   │   ├── auth.py         # Signup/login/session endpoints
 │   │   ├── contact.py      # Contact form + enquiries inbox + user/role admin
-│   │   ├── content.py      # Team / awards / media / articles / workshops / resources / search
+│   │   ├── content.py      # Team / awards / services / search
 │   │   └── hr.py           # HR portal (employees, leave, attendance, payroll)
 │   ├── database.py, models.py, schemas.py, security.py, services.py, serializers.py
 │   └── config.py           # Settings (DATABASE_URL, HR policy, etc.)
@@ -115,15 +105,13 @@ HR portal). Social links appear after verified company profile URLs are added.
 ├── Dockerfile
 └── static/
     ├── index.html, about.html, about_company_profile.html, about_team.html,
-    │   about_awards.html, about_media.html, services.html, services_detail.html,
-    │   resources.html, workshops.html, articles.html, article_detail.html,
+    │   about_awards.html, services.html, services_detail.html,
     │   faq.html, contact.html, search.html, login.html, signup.html, hr.html
     ├── images/              # Hero, service and testimonial photography
-    ├── resources/           # Generated downloadable PDF guides
     ├── css/style.css        # All styles
     └── js/
         ├── layout.js        # Shared header/nav/search/social-rail/footer (every page)
-        ├── common.js        # Shared helpers (fetchJSON, toast, contact form, PDF modal)
+        ├── common.js        # Shared helpers (fetchJSON, toast, contact form)
         ├── pages.js         # Per-page data fetching & rendering (keyed by <body data-page="">)
         └── auth.js          # Login/signup form logic
 ```
@@ -140,17 +128,11 @@ HR portal). Social links appear after verified company profile URLs are added.
 | GET    | `/api/team`           | All team profiles (directors + staff)     |
 | GET    | `/api/team/{id}`      | A single team member's profile            |
 | GET    | `/api/awards`         | Awards & recognition                      |
-| GET    | `/api/media`          | Press & media mentions                    |
-| GET    | `/api/articles`       | Articles written by the team              |
-| GET    | `/api/articles/{slug}`| A single article's full content           |
-| GET    | `/api/workshops`      | Workshops & training programmes           |
-| GET    | `/api/workshops/{id}` | A single workshop's detail                |
-| GET    | `/api/resources`      | Downloadable PDF resource library         |
 | GET    | `/api/compliance`     | Annual compliance status (AGM, BS, etc.)  |
 | GET    | `/api/testimonials`   | Client testimonials                       |
 | GET    | `/api/faq`            | Frequently asked questions                |
 | GET    | `/api/stats`          | Key headline numbers (capital, years…)    |
-| GET    | `/api/search?q=`      | Site-wide search across all content types |
+| GET    | `/api/search?q=`      | Site-wide search across current content   |
 | POST   | `/api/contact`        | Save a website enquiry (validated)        |
 | POST   | `/api/auth/signup`    | Create an account (sets session cookie)   |
 | POST   | `/api/auth/login`     | Log in (sets session cookie)              |
@@ -163,13 +145,8 @@ The HR portal exposes a further set of endpoints under `/api/hr/*` and
 ## Customising the Site
 
 - **Core company facts, services, directors, FAQ:** edit `company_data.py`.
-- **Team, awards, media, articles, workshops, PDF resources:** edit
-  `content_data.py` — the relevant pages update automatically.
-- **PDF resources:** generated by `scripts/generate_pdfs.py` into
-  `static/resources/`. Install the development dependencies with
-  `pip install -r requirements-dev.txt`, then run
-  `python scripts/generate_pdfs.py` to rebuild them. You can also add your own
-  PDFs in `static/resources/` and reference them from `content_data.py`.
+- **Team and awards:** edit `content_data.py` — the relevant pages update
+  automatically.
 - **Navigation / header / footer / social links:** `static/js/layout.js`
   (shared across every page).
 - **Design / copy:** `static/css/style.css` and the individual page HTML
