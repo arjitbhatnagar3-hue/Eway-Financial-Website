@@ -4,6 +4,8 @@ Management commands.
     python manage.py init-db                     # create tables
     python manage.py create-admin                # interactive: create / promote an admin
     python manage.py create-admin --email a@b.com --name "Divya Bhatnagar" --password '…'
+    python manage.py create-hr                   # interactive: create / promote an HR manager
+    python manage.py create-hr --email hr@b.com --name "HR Manager" --password '…'
     python manage.py seed-demo                   # sample departments, employees, leave, payroll
     python manage.py import-json                 # move legacy users.json / messages.json into the DB
     python manage.py db-info                     # show which database is in use + row counts
@@ -77,6 +79,32 @@ def cmd_create_admin(args) -> None:
         db.add(User(name=name, email=email, password_hash=hash_password(password), role=Role.ADMIN))
         db.commit()
         print(f"✓ Admin {email} created. Log in at /login → you'll land on /hr.")
+
+
+def cmd_create_hr(args) -> None:
+    """Create or promote an account to HR manager (never exposed through public signup)."""
+    init_db()
+    email = (args.email or input("HR email: ")).strip().lower()
+    if not EMAIL_RE.match(email):
+        sys.exit("✗ Invalid email address.")
+    password = args.password or getpass.getpass("Password (min 8 chars): ")
+    if len(password) < 8:
+        sys.exit("✗ Password must be at least 8 characters.")
+    with SessionLocal() as db:
+        user = db.scalar(select(User).where(User.email == email))
+        if user:
+            user.role = Role.HR
+            user.is_active = True
+            user.password_hash = hash_password(password)
+            if args.name:
+                user.name = args.name
+            db.commit()
+            print(f"Created or updated HR account {email}. Log in at /login, then open /hr.")
+            return
+        name = args.name or input("Full name: ").strip() or "HR Manager"
+        db.add(User(name=name, email=email, password_hash=hash_password(password), role=Role.HR))
+        db.commit()
+        print(f"Created HR account {email}. Log in at /login, then open /hr.")
 
 
 def cmd_import_json(_args) -> None:
@@ -260,6 +288,11 @@ def main() -> None:
     p.add_argument("--name")
     p.add_argument("--password")
     p.set_defaults(func=cmd_create_admin)
+    p = sub.add_parser("create-hr", help="Create or promote an HR manager")
+    p.add_argument("--email")
+    p.add_argument("--name")
+    p.add_argument("--password")
+    p.set_defaults(func=cmd_create_hr)
     sub.add_parser("seed-demo", help="Load sample HR data").set_defaults(func=cmd_seed_demo)
     sub.add_parser("import-json", help="Import legacy users.json / messages.json").set_defaults(func=cmd_import_json)
     args = parser.parse_args()

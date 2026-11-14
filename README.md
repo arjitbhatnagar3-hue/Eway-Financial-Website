@@ -50,6 +50,8 @@ The app uses a local SQLite file for development. For a deployed site, connect a
 3. If this is a new installation and you need the first HR administrator, set `ADMIN_EMAIL` and a strong `ADMIN_PASSWORD` in `.env`.
 4. Start the app. It reads `.env`, connects through SQLAlchemy, and creates missing tables at startup.
 
+To create or reset a local HR manager account, run `python manage.py create-hr --email hr.demo@ewayfinancial.in --name "Demo HR" --password "Demo@12345"`. This creates or promotes that account in the database selected by `DATABASE_URL`; sign in at `/login` and open `/hr`. Replace the demo password for any shared or deployed environment. Public sign-up creates client accounts and cannot grant staff roles.
+
 PowerShell copy command:
 
 ```powershell
